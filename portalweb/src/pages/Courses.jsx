@@ -106,6 +106,10 @@ export default function Courses() {
     };
   }, [fetchProgress]);
 
+  const goToMap = () => {
+    navigate("/map");
+  };
+
   const isFirstTime = useMemo(() => {
     const anyMedal = progress.some((p) => p.completed);
     return !testFlags.initial && !anyMedal;
@@ -147,7 +151,7 @@ export default function Courses() {
     const allMedals =
       progress.length === 4 && progress.every((p) => p.completed);
     if (allMedals && !testFlags.exit) return "Hacer test de salida";
-    return "Visualizar mapa";
+    return "Continuar experiencia";
   }, [progress, testFlags]);
 
   const cards = useMemo(() => {
@@ -230,6 +234,8 @@ export default function Courses() {
                   subtitle="Ecosistema de Seguridad Ciudadana"
                   ctaLabel={smartCtaLabel}
                   onCtaClick={goSmart}
+                  mapCtaLabel="Visualizar mapa"
+                  onMapClick={goToMap}
                   reminder={
                     isFirstTime
                       ? {
@@ -253,7 +259,7 @@ export default function Courses() {
                   testExitDone={testFlags.exit}
                   onClick={(key) => {
                     if (key === "contacto") {
-                      window.open("mailto:soporte@tu-dominio.com", "_blank");
+                      window.open("info@santander.gov.co", "_blank");
                       return;
                     }
                     if (key === "test-inicial") {
@@ -267,7 +273,7 @@ export default function Courses() {
                         navigate("/test-inicial");
                         return;
                       }
-                      navigate("/test-salida");
+                      navigate("");
                       return;
                     }
                   }}

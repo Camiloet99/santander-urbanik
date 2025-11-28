@@ -13,6 +13,7 @@ import TestExit from "@/pages/TestExit";
 import Profile from "@/pages/Profile";
 import Experience from "@/pages/Experience";
 import NiaChat from "@/pages/NiaChat";
+import Mapa from "@/pages/Mapa";
 
 import TermsPrivacyPage from "@/pages/legal/TermsPrivacyPage";
 import DataPolicyPage from "@/pages/legal/DataPolicyPage";
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
           { path: "/profile", element: <Profile /> },
           { path: "*", element: <Navigate to="/courses" replace /> },
           { path: "/experience", element: <Experience /> },
+          { path: "/map", element: <Mapa /> },
           { path: "/chat", element: <NiaChat /> },
           {
             path: "/admin",

@@ -5,7 +5,7 @@ import { getMyProgress } from "@/services/progressService";
 import { useNavigate, useLocation, useRevalidator } from "react-router-dom";
 import { MdHome } from "react-icons/md";
 
-export default function Experience() {
+export default function Mapa() {
   const { session, loadingAuth } = useAuth();
   const user = session?.user;
 

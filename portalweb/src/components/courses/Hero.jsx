@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import bgDefault from "@/assets/courses/hero.jpg";
-import { MdArrowForward } from "react-icons/md";
+import { MdArrowForward, MdMap } from "react-icons/md";
 
 export default function Hero({
   title = "Test de inicio",
@@ -11,6 +11,8 @@ export default function Hero({
   badge,
   className = "",
   reminder = null,
+  mapCtaLabel, // 🔹 nuevo
+  onMapClick = () => {}, // 🔹 nuevo
 }) {
   return (
     <section
@@ -63,21 +65,43 @@ export default function Hero({
             </div>
           )}
 
-          <button
-            onClick={onCtaClick}
-            className="inline-flex items-center gap-2 rounded-full bg-[#6C4CFF]
-                       px-5 py-2.5 text-sm font-medium
-                       transition-transform duration-150
-                       hover:bg-[#5944F9] active:scale-[0.98]
-                       focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
-                       shadow-[0_6px_18px_-8px_rgba(108,76,255,0.9)]
-                       hover:shadow-[0_8px_22px_-8px_rgba(108,76,255,1)]
-                       cursor-pointer"
-            aria-label={ctaLabel}
-            title={ctaLabel}
-          >
-            {ctaLabel} <MdArrowForward className="text-base" />
-          </button>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {/* Botón de mapa – va primero */}
+            {mapCtaLabel && (
+              <button
+                onClick={onMapClick}
+                className="inline-flex items-center gap-2 rounded-full
+                 bg-white/15 px-5 py-2.5 text-sm font-medium
+                 transition-transform duration-150
+                 hover:bg-white/20 active:scale-[0.98]
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
+                 shadow-[0_6px_18px_-10px_rgba(0,0,0,0.8)]
+                 cursor-pointer"
+                aria-label={mapCtaLabel}
+                title={mapCtaLabel}
+              >
+                <MdMap className="text-base" />
+                {mapCtaLabel}
+              </button>
+            )}
+
+            {/* Botón experiencia / test (el que ya tenías) */}
+            <button
+              onClick={onCtaClick}
+              className="inline-flex items-center gap-2 rounded-full bg-[#6C4CFF]
+               px-5 py-2.5 text-sm font-medium
+               transition-transform duration-150
+               hover:bg-[#5944F9] active:scale-[0.98]
+               focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60
+               shadow-[0_6px_18px_-8px_rgba(108,76,255,0.9)]
+               hover:shadow-[0_8px_22px_-8px_rgba(108,76,255,1)]
+               cursor-pointer"
+              aria-label={ctaLabel}
+              title={ctaLabel}
+            >
+              {ctaLabel} <MdArrowForward className="text-base" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -107,4 +131,6 @@ Hero.propTypes = {
     actionLabel: PropTypes.string.isRequired,
     onAction: PropTypes.func.isRequired,
   }),
+  mapCtaLabel: PropTypes.string, // 🔹 nuevo
+  onMapClick: PropTypes.func, // 🔹 nuevo
 };

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 import LoginForm from "@/components/auth/LoginForm";
-// import SignupIdentityStep from "@/components/auth/SignupIdentityStep";  // ⬅️ YA NO SE USA
+import SignupPersonalStep from "@/components/auth/SignupPersonalStep";
 import SignupCredentialsStep from "@/components/auth/SignupCredentialsStep";
 import ForgotIdentityStep from "@/components/auth/ForgotIdentityStep";
 import ForgotResetStep from "@/components/auth/ForgotResetStep";
@@ -67,6 +67,7 @@ function ProgressDots({ total = 2, index = 0 }) {
 export default function AuthGateway() {
   const [mode, setMode] = useState("login");
   const [forgotStep, setForgotStep] = useState(1);
+  const [signupStep, setSignupStep] = useState(1);
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -144,66 +145,95 @@ export default function AuthGateway() {
     }),
     [credValues.pass]
   );
-  
+
+  const EMPTY_SIGNUP_ERRORS = {
+    municipio: "",
+    barrio: "",
+    nombresApellidos: "",
+    cedula: "",
+    email: "",
+    ageRange: "",
+    celular: "",
+    genero: "",
+    enfoque: "",
+    pass: "",
+    confirm: "",
+    accept: "",
+  };
+
+  function validateSignupPersonal(values) {
+    const errs = {};
+
+    if (!values.municipio.trim()) {
+      errs.municipio = "Campo requerido";
+    }
+    if (!values.barrio.trim()) {
+      errs.barrio = "Campo requerido";
+    }
+    if (!values.nombresApellidos.trim()) {
+      errs.nombresApellidos = "Campo requerido";
+    }
+    if (!/^\d{6,10}$/.test(values.cedula)) {
+      errs.cedula = "Cédula inválida (6–10 dígitos)";
+    }
+    if (!isEmail(values.email)) {
+      errs.email = "Correo electrónico inválido";
+    }
+    if (!/^\d{7,10}$/.test(values.celular)) {
+      errs.celular = "Número de celular inválido";
+    }
+
+    return errs;
+  }
+
+  function validateSignupSecurity(values, rules) {
+    const errs = {};
+
+    // ahora aquí validamos rango, género y enfoque
+    if (!values.ageRange) {
+      errs.ageRange = "Selecciona un rango de edad";
+    }
+    if (!values.genero) {
+      errs.genero = "Selecciona una opción";
+    }
+    if (!values.enfoque) {
+      errs.enfoque = "Selecciona una opción";
+    }
+
+    if (!(rules.len && rules.upper && rules.special)) {
+      errs.pass = "Contraseña insegura";
+    }
+    if (values.confirm !== values.pass) {
+      errs.confirm = "Las contraseñas no coinciden";
+    }
+    if (!values.accept) {
+      errs.accept = "Debes aceptar las políticas";
+    }
+
+    return errs;
+  }
+
+  function handleSignupNextStep() {
+    const personalErrors = validateSignupPersonal(credValues);
+    const merged = { ...EMPTY_SIGNUP_ERRORS, ...personalErrors };
+    setCredErrors(merged);
+
+    const hasErrors = Object.values(personalErrors).some((v) => v);
+    if (!hasErrors) {
+      setSignupStep(2);
+    }
+  }
   async function handleSignupSubmit(e) {
     e.preventDefault();
 
-    // limpiamos errores
+    const personalErrors = validateSignupPersonal(credValues);
+    const securityErrors = validateSignupSecurity(credValues, signupRules);
+
     const newErrors = {
-      municipio: "",
-      barrio: "",
-      nombresApellidos: "",
-      cedula: "",
-      email: "",
-      ageRange: "",
-      celular: "",
-      genero: "",
-      enfoque: "",
-      pass: "",
-      confirm: "",
-      accept: "",
+      ...EMPTY_SIGNUP_ERRORS,
+      ...personalErrors,
+      ...securityErrors,
     };
-
-    // Validaciones básicas de datos personales
-    if (!credValues.municipio.trim()) {
-      newErrors.municipio = "Campo requerido";
-    }
-    if (!credValues.barrio.trim()) {
-      newErrors.barrio = "Campo requerido";
-    }
-    if (!credValues.nombresApellidos.trim()) {
-      newErrors.nombresApellidos = "Campo requerido";
-    }
-    if (!/^\d{6,10}$/.test(credValues.cedula)) {
-      newErrors.cedula = "Cédula inválida (6–10 dígitos)";
-    }
-    if (!isEmail(credValues.email)) {
-      newErrors.email = "Correo electrónico inválido";
-    }
-    if (!credValues.ageRange) {
-      newErrors.ageRange = "Selecciona un rango de edad";
-    }
-    if (!/^\d{7,10}$/.test(credValues.celular)) {
-      newErrors.celular = "Número de celular inválido";
-    }
-    if (!credValues.genero) {
-      newErrors.genero = "Selecciona una opción";
-    }
-    if (!credValues.enfoque) {
-      newErrors.enfoque = "Selecciona una opción";
-    }
-
-    // Validación de contraseña
-    if (!(signupRules.len && signupRules.upper && signupRules.special)) {
-      newErrors.pass = "Contraseña insegura";
-    }
-    if (credValues.confirm !== credValues.pass) {
-      newErrors.confirm = "Las contraseñas no coinciden";
-    }
-    if (!credValues.accept) {
-      newErrors.accept = "Debes aceptar las políticas";
-    }
-
     setCredErrors(newErrors);
 
     const hasError = Object.values(newErrors).some((v) => v);
@@ -340,13 +370,15 @@ export default function AuthGateway() {
   const firstFieldRef = useRef(null);
   useEffect(() => {
     firstFieldRef.current?.focus?.();
-  }, [mode, forgotStep]);
+  }, [mode, forgotStep, signupStep]);
 
   // El stepper ahora solo se usa para "forgot" (2 pasos)
   const showStepper =
-    mode === "forgot" && (forgotStep === 1 || forgotStep === 2);
+    (mode === "forgot" && (forgotStep === 1 || forgotStep === 2)) ||
+    (mode === "signup" && (signupStep === 1 || signupStep === 2));
 
-  const stepIndex = mode === "forgot" ? forgotStep - 1 : 0;
+  const stepIndex =
+    mode === "forgot" ? forgotStep - 1 : mode === "signup" ? signupStep - 1 : 0;
 
   return (
     <div className="min-h-screen bg-[#0f1422] text-white flex items-center justify-center">
@@ -373,6 +405,7 @@ export default function AuthGateway() {
                       onClick={() => {
                         setMode(t.key);
                         if (t.key === "forgot") setForgotStep(1);
+                        if (t.key === "signup") setSignupStep(1);
                       }}
                       className="relative z-10 flex-1 py-2 text-sm rounded-full"
                     >
@@ -407,7 +440,7 @@ export default function AuthGateway() {
               {showStepper && <ProgressDots total={2} index={stepIndex} />}
 
               <motion.div
-                key={`${mode}-${forgotStep}`}
+                key={`${mode}-${forgotStep}-${signupStep}`}
                 variants={formContainerVariants}
                 initial="initial"
                 animate="animate"
@@ -456,17 +489,35 @@ export default function AuthGateway() {
                   )}
 
                   {/* SIGNUP: un solo paso */}
-                  {mode === "signup" && (
-                    <motion.div key="signup" layout>
+                  {mode === "signup" && signupStep === 1 && (
+                    <motion.div key="signup-1" layout>
+                      <SignupPersonalStep
+                        values={credValues}
+                        setValues={setCredValues}
+                        errors={credErrors}
+                        onNext={handleSignupNextStep}
+                        onToLogin={() => {
+                          setMode("login");
+                          setSignupStep(1);
+                        }}
+                      />
+                    </motion.div>
+                  )}
+
+                  {mode === "signup" && signupStep === 2 && (
+                    <motion.div key="signup-2" layout>
                       <SignupCredentialsStep
-                        emailFixed={credValues.email} // ya no se usa dentro, pero se mantiene la prop
+                        emailFixed={credValues.email}
                         values={credValues}
                         setValues={setCredValues}
                         errors={credErrors}
                         rules={signupRules}
-                        onBack={() => setMode("login")}
+                        onBack={() => setSignupStep(1)}
                         onSubmit={handleSignupSubmit}
-                        onToLogin={() => setMode("login")}
+                        onToLogin={() => {
+                          setMode("login");
+                          setSignupStep(1);
+                        }}
                       />
                     </motion.div>
                   )}

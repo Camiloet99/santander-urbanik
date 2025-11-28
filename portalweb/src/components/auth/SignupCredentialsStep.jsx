@@ -1,21 +1,14 @@
 // src/components/auth/SignupCredentialsStep.jsx
 import { motion } from "framer-motion";
 import {
-  MdEmail,
   MdLock,
   MdVisibility,
   MdVisibilityOff,
   MdCheckCircle,
   MdCancel,
-  MdLocationCity,
-  MdHome,
-  MdPerson,
-  MdBadge,
-  MdPhoneIphone,
   MdTransgender,
   MdDiversity3,
 } from "react-icons/md";
-import Input from "../Input";
 import PasswordInput from "../PasswordInput";
 
 const variants = {
@@ -46,7 +39,7 @@ function Rule({ ok, label }) {
 }
 
 export default function SignupCredentialsStep({
-  emailFixed, // ya no se usa
+  emailFixed, // opcional
   values,
   setValues,
   errors,
@@ -64,99 +57,8 @@ export default function SignupCredentialsStep({
       animate="animate"
       exit="exit"
     >
-      {/* DATOS PERSONALES / CONTACTO */}
+      {/* PERFIL: rango de edad, género, enfoque */}
       <div className="space-y-4">
-        <Input
-          autoFocus
-          placeholder="Municipio de residencia"
-          value={values.municipio || ""}
-          onChange={(e) =>
-            setValues((v) => ({ ...v, municipio: e.target.value }))
-          }
-          size="lg"
-          iconLeft={<MdLocationCity size={18} />}
-          aria-invalid={!!errors.municipio}
-        />
-        {errors.municipio && (
-          <p className="mt-1 text-xs text-red-300">{errors.municipio}</p>
-        )}
-
-        <Input
-          placeholder="Barrio, vereda o sector"
-          value={values.barrio || ""}
-          onChange={(e) => setValues((v) => ({ ...v, barrio: e.target.value }))}
-          size="lg"
-          iconLeft={<MdHome size={18} />}
-          aria-invalid={!!errors.barrio}
-        />
-        {errors.barrio && (
-          <p className="mt-1 text-xs text-red-300">{errors.barrio}</p>
-        )}
-
-        <Input
-          placeholder="Nombres y apellidos"
-          value={values.nombresApellidos || ""}
-          onChange={(e) =>
-            setValues((v) => ({ ...v, nombresApellidos: e.target.value }))
-          }
-          size="lg"
-          iconLeft={<MdPerson size={18} />}
-          aria-invalid={!!errors.nombresApellidos}
-        />
-        {errors.nombresApellidos && (
-          <p className="mt-1 text-xs text-red-300">{errors.nombresApellidos}</p>
-        )}
-
-        <Input
-          placeholder="Número de documento (cédula)"
-          value={values.cedula || ""}
-          onChange={(e) => setValues((v) => ({ ...v, cedula: e.target.value }))}
-          size="lg"
-          iconLeft={<MdBadge size={18} />}
-          aria-invalid={!!errors.cedula}
-        />
-        {errors.cedula && (
-          <p className="mt-1 text-xs text-red-300">{errors.cedula}</p>
-        )}
-
-        <Input
-          placeholder="Correo electrónico"
-          type="email"
-          value={values.email || ""}
-          onChange={(e) => setValues((v) => ({ ...v, email: e.target.value }))}
-          size="lg"
-          iconLeft={<MdEmail size={18} />}
-          aria-invalid={!!errors.email}
-        />
-        {errors.email && (
-          <p className="mt-1 text-xs text-red-300">{errors.email}</p>
-        )}
-
-        {/* Celular con prefijo +57 */}
-        <div>
-          <div className="flex gap-3">
-            <div className="h-12 px-4 rounded-full bg-white/10 border border-white/15 text-sm flex items-center text-white/80">
-              +57
-            </div>
-            <div className="flex-1">
-              <Input
-                placeholder="Número de celular"
-                type="tel"
-                value={values.celular || ""}
-                onChange={(e) =>
-                  setValues((v) => ({ ...v, celular: e.target.value }))
-                }
-                size="lg"
-                iconLeft={<MdPhoneIphone size={18} />}
-                aria-invalid={!!errors.celular}
-              />
-            </div>
-          </div>
-          {errors.celular && (
-            <p className="mt-1 text-xs text-red-300">{errors.celular}</p>
-          )}
-        </div>
-
         {/* Rango de edad */}
         <div>
           <label className="block text-sm text-white/80 mb-1">
@@ -342,7 +244,7 @@ export default function SignupCredentialsStep({
         <button
           type="button"
           onClick={onBack}
-          className="h-12 w-1/3 rounded-full bg-white/10 hover:bg-white/15 transition"
+          className="h-12 w-1/3 rounded-full bg_white/10 bg-white/10 hover:bg-white/15 transition"
         >
           Volver
         </button>
