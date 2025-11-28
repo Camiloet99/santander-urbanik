@@ -147,7 +147,7 @@ export default function Courses() {
     const allMedals =
       progress.length === 4 && progress.every((p) => p.completed);
     if (allMedals && !testFlags.exit) return "Hacer test de salida";
-    return "Continuar experiencia";
+    return "Visualizar mapa";
   }, [progress, testFlags]);
 
   const cards = useMemo(() => {
