@@ -27,6 +27,9 @@ CREATE TABLE IF NOT EXISTS users (
   initial_test_done BOOLEAN NOT NULL DEFAULT FALSE,
   exit_test_done    BOOLEAN NOT NULL DEFAULT FALSE,
 
+  -- 🔹 NUEVO: columna para UserEntity.nivelRiesgo
+  nivel_riesgo VARCHAR(80),
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
