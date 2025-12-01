@@ -212,25 +212,7 @@ export default function SignupCredentialsStep({
               rel="noopener noreferrer"
               className="underline"
             >
-              Aviso de Privacidad
-            </a>
-            ,{" "}
-            <a
-              href="/legal/terms-privacy#terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Condiciones de Uso
-            </a>{" "}
-            y{" "}
-            <a
-              href="/legal/data-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-            >
-              Política de Protección de Datos
+              Aviso de Privacidad y Codiciones de Uso
             </a>
             .
           </span>

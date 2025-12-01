@@ -18,7 +18,6 @@ import NiaChat from "@/pages/NiaChat";
 import Mapa from "@/pages/Mapa";
 
 import TermsPrivacyPage from "@/pages/legal/TermsPrivacyPage";
-import DataPolicyPage from "@/pages/legal/DataPolicyPage";
 import AdminPanel from "@/pages/AdminPanel";
 import AdminRoute from "@/routes/AdminRoute";
 
@@ -26,8 +25,6 @@ import AdminRoute from "@/routes/AdminRoute";
 const router = createBrowserRouter([
   { path: "/login", element: <AuthGateway /> },
   { path: "/legal/terms-privacy", element: <TermsPrivacyPage /> },
-  { path: "/legal/data-policy", element: <DataPolicyPage /> },
-
   {
     element: <ProtectedRoute />,
     children: [

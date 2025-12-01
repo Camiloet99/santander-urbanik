@@ -123,11 +123,11 @@ export default function Experience() {
               AutoPlayVideo: true,
             },
             settings: {
-              infoButton: true,
-              micButton: true,
+              infoButton: false,
+              micButton: false,
               audioButton: true,
               fullscreenButton: true,
-              settingsButton: true,
+              settingsButton: false,
               connectionStrengthIcon: true,
             },
           }
