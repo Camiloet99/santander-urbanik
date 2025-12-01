@@ -1,12 +1,14 @@
-// src/App.jsx
+
 import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
 } from "react-router-dom";
+
 import AuthGateway from "@/pages/Login";
 import DashboardLayout from "@/layouts/DashboardLayout";
 import ProtectedRoute from "@/routes/ProtectedRoute";
+
 import Courses from "@/pages/Courses";
 import TestInitial from "@/pages/TestInitial";
 import TestExit from "@/pages/TestExit";
@@ -20,10 +22,12 @@ import DataPolicyPage from "@/pages/legal/DataPolicyPage";
 import AdminPanel from "@/pages/AdminPanel";
 import AdminRoute from "@/routes/AdminRoute";
 
+
 const router = createBrowserRouter([
   { path: "/login", element: <AuthGateway /> },
   { path: "/legal/terms-privacy", element: <TermsPrivacyPage /> },
   { path: "/legal/data-policy", element: <DataPolicyPage /> },
+
   {
     element: <ProtectedRoute />,
     children: [
@@ -39,6 +43,8 @@ const router = createBrowserRouter([
           { path: "/experience", element: <Experience /> },
           { path: "/map", element: <Mapa /> },
           { path: "/chat", element: <NiaChat /> },
+          { path: "/data", element: <Mapa /> },
+
           {
             path: "/admin",
             element: (
@@ -51,7 +57,11 @@ const router = createBrowserRouter([
       },
     ],
   },
+
   { path: "*", element: <Navigate to="/courses" replace /> },
+
+
+
 ]);
 
 export default function App() {

@@ -52,12 +52,11 @@ function MobileNav() {
   const items = [
     { to: "/courses", icon: homeIcon, label: "Inicio" },
     { to: "/chat", icon: chatIcon, label: "Chat Nio" },
+    { to: "/data", icon: dataIcon, label: "Datos" }, // 🔹 Mapa
     { to: "/profile", icon: profileIcon, label: "Mi perfil" },
   ];
 
-  if (session?.user?.role === "ADMIN") {
-    items.push({ to: "/admin", icon: profileIcon, label: "Datos" });
-  }
+  // si luego quieres un panel extra solo para ADMIN, aquí puedes pushear otro item
 
   return (
     <nav
@@ -67,7 +66,7 @@ function MobileNav() {
         z-[70]
         w-[92%] max-w-[520px]
         rounded-[22px] bg-white/10 backdrop-blur-xl
-        ring-1 ring-white/15 shadow-[0_15px_40px_rgba(0,0,0,.35)]
+        ring-1 ring-white/15 shadow-[0_15px_40px_rgba(0,0,0,35)]
         px-4 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]
       "
       aria-label="Navegación principal"
@@ -148,9 +147,7 @@ export default function DashboardLayout() {
         <nav className="mt-12 flex w-full flex-col items-stretch gap-4">
           <Item to="/courses" imgSrc={homeIcon} label="Inicio" />
           <Item to="/chat" imgSrc={chatIcon} label="Chat Nio" />
-          {session?.user?.role === "ADMIN" && (
-            <Item to="/admin" imgSrc={dataIcon} label="Datos" />
-          )}
+          <Item to="/data" imgSrc={dataIcon} label="Datos" /> {/* 🔹 Mapa */}
         </nav>
 
         <div className="mt-auto w-full" />
@@ -197,7 +194,6 @@ export default function DashboardLayout() {
                 src={partner2}
                 alt="Partner 2"
                 className="shrink-0 h-14 sm:h-16 lg:h-[88px] max-h-[88px] object-contain drop-shadow-md"
-                draggable={false}
               />
             </div>
           </div>
