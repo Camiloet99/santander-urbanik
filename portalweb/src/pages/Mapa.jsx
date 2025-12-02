@@ -1,20 +1,19 @@
-/* global google */
 import React, {
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { useAuth } from "@/context/AuthContext";
 import {
+  getMunicipios,
   getRiesgo,
   getDelitos,
 } from "@/services/seguridadService";
-import HeatmapWithFilters from "@/components/ui/HeatmapWithFilters";
 
-
-// URL para heatmap
+// URL para heatmap 
 const HEATMAP_API_URL =
   import.meta.env.VITE_ML_HEATMAP_URL ||
   `${import.meta.env.VITE_ML_API_URL || "http://localhost:8000"}/heatmap`;
@@ -32,7 +31,7 @@ const GRUPOS_POBLACION = [
   { id: "MAYORES", label: "Adulto mayor 60+" },
 ];
 
-// Ajusta a los textos que devuelve tu API
+// Ajusta a los textos 
 const MAPA_GRUPOS_ETARIOS = {
   NINOS: ["0 a 12"],
   ADOLESCENTES: ["13 a 17"],
@@ -102,7 +101,7 @@ export default function Mapa() {
     if (!map) return;
     const { HeatmapLayer } = await importLibrary("visualization");
 
-    const heatmapData = (points || []).map(
+    const heatmapData = points.map(
       (p) => new google.maps.LatLng(p.lat, p.lng)
     );
 
@@ -144,6 +143,10 @@ export default function Mapa() {
     }
   };
 
+
+
+
+  
   // Inicializar mapa
   useEffect(() => {
     (async () => {
@@ -280,7 +283,6 @@ export default function Mapa() {
           </p>
         </div>
 
-        {/* Filtros superiores */}
         <div className="px-6 pb-4 flex flex-wrap gap-2 text-xs">
           {CATEGORIAS.map((cat) => {
             const active = categoria === cat.value;
@@ -331,7 +333,6 @@ export default function Mapa() {
           )}
         </div>
 
-        {/* Contenedor del mapa */}
         <div
           ref={mapRef}
           className="w-full h-[520px] rounded-[24px] border-t border-white/10"
@@ -405,7 +406,9 @@ export default function Mapa() {
 
         {/* Impacto por grupo poblacional */}
         <section className="rounded-2xl bg-[#151827] border border-white/10 px-4 py-3 text-xs">
-          <p className="font-semibold mb-2">Impacto por grupo poblacional</p>
+          <p className="font:semicolon mb-2">
+            Impacto por grupo poblacional
+          </p>
           <p className="text-white/60 text-[11px] mb-3">
             En el municipio{" "}
             <span className="font-semibold">
@@ -467,7 +470,8 @@ export default function Mapa() {
                         {delitoGrupoSeleccionado.categoria}
                       </p>
                       <p className="text-white/60">
-                        {delitoGrupoSeleccionado.total} casos registrados.
+                        {delitoGrupoSeleccionado.total} casos
+                        registrados.
                       </p>
                     </>
                   ) : (

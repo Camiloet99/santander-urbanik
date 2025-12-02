@@ -2,85 +2,95 @@
 import React, { useEffect, useRef } from "react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 
+// API  
+const HEATMAP_API_URL = "http://127.0.0.1:8000/heatmap";
 
-// AQUÍ DEFINES LA URL QUE TE DA TU COMPAÑERO / TU API
-// Puedes usar directamente su PHP:
-const HEATMAP_API_URL = "https://nivel99.com/urbanik/getHeatmapData.php";
-// Más adelante, si quieren, esto se puede cambiar a su ML-API.
+export default function HeatmapWithFilters({ categoria, anio, mes, municipio }) {
+  const mapRef = useRef(null);
+  const heatmapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
 
-// Este componente SOLO dibuja el mapa de calor.
-// Los filtros (categoría, año, mes) vienen como props desde la página Mapa.
-export default function HeatmapWithFilters({ categoria, anio, mes }) {
-  const mapRef = useRef(null);           // DIV donde va el mapa
-  const heatmapRef = useRef(null);       // instancia del HeatmapLayer
-  const mapInstanceRef = useRef(null);   // instancia del Map
-
-  // Carga Google Maps + heatmap y actualiza cuando cambian los filtros
   useEffect(() => {
     async function init() {
-      // 1. Configurar la API de Google
       setOptions({
-        apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY, // tu clave del .env
+        apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
         version: "weekly",
       });
 
       const { Map } = await importLibrary("maps");
       const { HeatmapLayer } = await importLibrary("visualization");
 
-      // 2. Crear el mapa SOLO la primera vez
+      // Crear mapa solo una vez
       if (!mapInstanceRef.current && mapRef.current) {
         mapInstanceRef.current = new Map(mapRef.current, {
-          center: { lat: 7.125, lng: -73.1189 }, // centro Santander aprox
+          center: { lat: 7.125, lng: -73.118 }, // Santander
           zoom: 8,
           streetViewControl: false,
           mapTypeControl: false,
         });
       }
 
-      // 3. Pedir los datos del heatmap para los filtros actuales
       await fetchHeatmapData(HeatmapLayer);
     }
 
-    async function fetchHeatmapData(HeatmapLayer) {
-      if (!mapInstanceRef.current) return;
-
-      // Construir la URL con filtros (igual que el ejemplo de tu compañero)
-      let url = HEATMAP_API_URL;
-      const params = [];
-      if (categoria) params.push(`categoria=${encodeURIComponent(categoria)}`);
-      if (anio) params.push(`anio=${encodeURIComponent(anio)}`);
-      if (mes) params.push(`mes=${encodeURIComponent(mes)}`);
-      if (params.length > 0) url += "?" + params.join("&");
-
-      const response = await fetch(url);
-      const data = await response.json();
-
-      // Ajusta estos nombres a lo que te devuelva tu API:
-      const points = (data || []).map((p) =>
-        new google.maps.LatLng(
-          p.lat ?? p.latitud ?? p.latitude,
-          p.lng ?? p.longitud ?? p.longitude
-        )
-      );
-
-      // 4. Crear o actualizar la capa de heatmap
-      if (!heatmapRef.current) {
-        heatmapRef.current = new HeatmapLayer({
-          data: points,
-          radius: 40,
-        });
-        heatmapRef.current.setMap(mapInstanceRef.current);
-      } else {
-        heatmapRef.current.setData(points);
-      }
+   const fetchHeatmapData = async () => {
+  if (!map) return;
+  setLoadingHeatmap(true);
+  try {
+    // 1. validar que haya año
+    if (!anio) {
+      setError("Selecciona un año para actualizar el mapa.");
+      setLoadingHeatmap(false);
+      return;
     }
 
-    init().catch((err) => {
-      console.error("Error inicializando heatmap:", err);
-    });
-  }, [categoria, anio, mes]);
+    // 2. construir la URL SIEMPRE con categoria + anio
+    let url = HEATMAP_API_URL;
 
-  // Este div es el contenedor del mapa (el equivalente al div con ref del ejemplo)
+    const params = [
+      `categoria=${encodeURIComponent(categoria)}`,
+      `anio=${encodeURIComponent(anio)}`,   // 👈 SIEMPRE presente
+    ];
+
+    if (mes && mes !== "Todos") {
+      params.push(`mes=${encodeURIComponent(mes)}`);
+    }
+
+    url += "?" + params.join("&");
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      console.error("Respuesta de error del heatmap:", errorBody);
+      throw new Error(`Error HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      console.error("Respuesta inesperada del heatmap:", data);
+      throw new Error("Formato de datos inválido");
+    }
+
+    const points = data.map((p) => ({
+      lat: p.lat ?? p.latitud,
+      lng: p.lng ?? p.longitud,
+    }));
+
+    await updateHeatmap(points);
+  } catch (err) {
+    console.error("Error cargando datos del heatmap", err);
+    setError("Error al cargar el mapa de calor.");
+  } finally {
+    setLoadingHeatmap(false);
+  }
+};
+
+
+    init().catch((err) => console.error("Error inicializando heatmap:", err));
+  }, [categoria, anio, mes, municipio]);
+
   return (
     <div
       ref={mapRef}

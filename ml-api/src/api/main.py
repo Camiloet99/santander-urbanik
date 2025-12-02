@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import List, Optional
+from typing import Optional
 
 import sqlite3
 from fastapi import FastAPI
@@ -199,14 +200,12 @@ def get_riesgo(
 
 @app.get("/resumen_delitos")
 def resumen_delitos(
-    categoria: str,          # HURTO / VIF / SEXUALES
+    categoria: str,          
     anio: int,
     municipio: Optional[str] = None,
 ):
     """
-    Resumen anual por municipio para una categoría:
-      - total de delitos en el año
-      - arma más frecuente y número de casos con esa arma
+    Resumen anual por municipio para una categoría: total de delitos en el año  arma más frecuente y número de casos con esa arma
 
     Se apoya en la tabla delitos_analitica (datos limpios).
     """
@@ -267,3 +266,71 @@ def resumen_delitos(
     """
 
     return query_db(sql, tuple(params))
+# -------------------------------------------------------------
+# Endpoint para el mapa de calor con coordenadas
+# -------------------------------------------------------------
+# -------------------------------------------------------------
+# Endpoint para el mapa de calor con coordenadas
+# -------------------------------------------------------------
+@app.get("/heatmap")
+def get_heatmap(
+    categoria: str = Query(..., description="HURTO / VIOLENCIA_INTRAFAMILIAR / DELITOS_SEXUALES"),
+    anio: Optional[int] = Query(None),
+    mes: Optional[int] = Query(None),
+    genero: Optional[str] = Query(None),
+    grupo_etario: Optional[str] = Query(None),
+):
+    # Normalizamos la categoría por si llegara en minúsculas
+    categoria = categoria.upper().strip()
+
+    # Filtros base
+    filtros = ["d.categoria = ?"]
+    params: list = [categoria]
+
+    if anio is not None:
+        filtros.append("d.anio = ?")
+        params.append(anio)
+
+    if mes is not None:
+        filtros.append("d.mes = ?")
+        params.append(mes)
+
+    if genero is not None:
+        filtros.append("d.genero = ?")
+        params.append(genero)
+
+    if grupo_etario is not None:
+        filtros.append("d.grupo_etario = ?")
+        params.append(grupo_etario)
+
+    where_clause = " AND ".join(filtros)
+
+    sql = f"""
+        SELECT
+            d.municipio,
+            c.lat,
+            c.lng,
+            SUM(d.cantidad) AS count
+        FROM delitos_analitica d
+        LEFT JOIN coordenadas_municipios c
+            ON UPPER(TRIM(d.municipio)) = UPPER(TRIM(c.municipio))
+        WHERE {where_clause}
+        GROUP BY d.municipio, c.lat, c.lng
+        HAVING c.lat IS NOT NULL AND c.lng IS NOT NULL
+    """
+
+    # Usamos tu helper query_db para no repetir código de conexión
+    rows = query_db(sql, tuple(params))
+
+    return [
+        {
+            "municipio": row[0],
+            "lat": row[1],
+            "lng": row[2],
+            "count": row[3],
+        }
+        for row in rows
+    ]
+
+
+

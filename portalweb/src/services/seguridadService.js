@@ -27,26 +27,17 @@ async function get(path, params = {}) {
   return res.json();
 }
 
-/**
- * Lista de municipios
- * GET /municipios
- */
+
 export function getMunicipios() {
   return get("/municipios");
 }
 
-/**
- * Nivel de riesgo por municipio
- * GET /riesgo?categoria=&anio=&mes=
- */
+
 export function getRiesgo(params = {}) {
   return get("/riesgo", params);
 }
 
-/**
- * Detalle de delitos por municipio / año / categoría
- * GET /delitos?municipio=&anio=&categoria=
- */
+
 export function getDelitos(params = {}) {
   return get("/delitos", params);
 }
