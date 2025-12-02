@@ -7,7 +7,7 @@ export default function TermsPrivacyPage() {
         Aviso de Privacidad y Condiciones de Uso
       </h1>
       <PdfObjectViewer
-        src="/legal/pdfs/avisoprivacidad.pdf"
+        src="/legal/pdfs/avisoprivacidadcondiciones.pdf"
         height="85vh"
       />
     </main>

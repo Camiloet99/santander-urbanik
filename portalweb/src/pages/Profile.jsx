@@ -11,6 +11,7 @@ import {
   MdTransgender,
 } from "react-icons/md";
 import Input from "@/components/Input";
+import shield from "@/assets/shield.png";
 
 export default function Profile() {
   const { session, updateUser } = useAuth();
@@ -226,6 +227,8 @@ export default function Profile() {
     }
   };
 
+  const puntosSeguros = user?.puntosSeguros ?? 160;
+
   return (
     <div className="mx-auto w-full max-w-[1200px] px-2 sm:px-4 lg:px-0">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
@@ -339,57 +342,22 @@ export default function Profile() {
 
         {/* Columna derecha: Datos personales */}
         <aside className="rounded-3xl bg-white/5 ring-1 ring-white/10 p-6 md:p-7 shadow-[0_18px_40px_-18px_rgba(0,0,0,0.45)]">
-          <h3 className="text-center text-base font-semibold mb-6">
+          <h3 className="text-center text-base font-semibold mb-3">
             Datos personales
           </h3>
 
           {/* Pills de grupo de edad y nivel de riesgo */}
-          <div className="mb-6 flex w-full justify-center">
-            <div className="flex flex-col items-center gap-3">
-              {/* Nivel de riesgo con tooltip */}
-              <div className="relative group">
-                <span
-                  className={[
-                    "inline-flex flex-col items-center gap-0.5 rounded-full px-4 py-1.5 text-[11px] font-medium ring-1",
-                    "backdrop-blur-sm cursor-default",
-                    riskInfo.badgeClass,
-                  ].join(" ")}
-                >
-                  <span className="uppercase tracking-[0.18em] text-[9px] text-white/60">
-                    NIVEL DE RIESGO
-                  </span>
-                  <span className="text-xs md:text-sm text-white">
-                    {riskInfo.label}
-                  </span>
-                </span>
-
-                {/* Tooltip descriptivo */}
-                <div
-                  className="
-          pointer-events-none opacity-0 group-hover:opacity-100 group-focus-within:opacity-100
-          transition-opacity duration-200
-          absolute left-1/2 -translate-x-1/2 top-full mt-2 z-30
-        "
-                >
-                  <div className="max-w-xs rounded-2xl bg-[#050711]/95 px-3 py-2.5 text-[11px] leading-relaxed text-white/80 ring-1 ring-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
-                    <p className="font-semibold mb-1 text-[11px] text-white">
-                      ¿Qué significa tu nivel de riesgo?
-                    </p>
-                    <p>{riskInfo.desc}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Grupo de edad (debajo del riesgo) */}
+          <div className="mb-3 flex w-full justify-center">
+            <div className="flex flex-col items-center gap-2">
               {ageInfo.hasAge && (
                 <span
                   className="
-          inline-flex flex-col items-center gap-0.5
-          rounded-full px-4 py-1.5 text-[11px] font-medium
-          bg-white/7 text-white/80 ring-1 ring-white/18 backdrop-blur-sm
-        "
+                    inline-flex flex-col items-center gap-0
+                    rounded-full px-4 py-1 text-[11px] font-medium
+                    bg-white/7 text-white/80 ring-1 ring-white/18 backdrop-blur-sm
+                  "
                 >
-                  <span className="uppercase tracking-[0.18em] text-[9px] text-white/60">
+                  <span className="uppercase tracking-[0.18em] text-[8px] text-white/60">
                     GRUPO DE EDAD
                   </span>
                   <span className="text-xs md:text-sm text-white">
@@ -401,7 +369,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-2">
             {/* Email (solo lectura) */}
             <Input
               placeholder="Email"
@@ -553,7 +521,7 @@ export default function Profile() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center justify-end gap-4">
+          <div className="mt-3 flex items-center justify-end gap-4">
             {!edit ? (
               <button
                 className="text-white/85 hover:text-white underline underline-offset-4 cursor-pointer"
@@ -602,6 +570,43 @@ export default function Profile() {
                 </button>
               </>
             )}
+          </div>
+
+          <div className="mt-5 flex flex-col items-center text-center gap-3">
+            {/* Línea de nivel de riesgo */}
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-white/80">Nivel de riesgo:</span>
+              <span
+                className={[
+                  "inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium ring-1 backdrop-blur-sm",
+                  riskInfo.badgeClass,
+                ].join(" ")}
+              >
+                <span className="text-lg leading-none">⚠️</span>
+                <span className="text-white">{riskInfo.label}</span>
+              </span>
+            </div>
+
+            <div className="mt-1 flex flex-col items-center gap-2">
+              {/* Fila: escudo + texto en la misma línea */}
+              <div className="flex items-center gap-3">
+                <img
+                  src={shield}
+                  alt="Puntos Seguros"
+                  className="h-9 w-9 object-contain"
+                />
+                <p className="text-sm font-semibold text-white">
+                  {puntosSeguros} Puntos Seguros
+                </p>
+              </div>
+
+              {/* Texto descriptivo debajo, centrado */}
+              <p className="max-w-xs text-[11px] leading-relaxed text-white/70 text-center">
+                ¡Gana Puntos Seguros por cuidarte! Completa módulos, reporta
+                incidencias y desbloquea beneficios exclusivos, análisis
+                avanzados y premios locales.
+              </p>
+            </div>
           </div>
 
           {toast.msg && !showPicker && (

@@ -4,12 +4,61 @@ import { getChatSession, sendMessageStream } from "@/services/niaService";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
-/** -------- CONFIG -------- */
 const LS_KEY = "nia-chat-history-v1";
 
-// Pasa tus assets acá (puedes importarlos si prefieres):
 const HERO_VIDEO_SRC = "/videos/nia-video.mp4"; // ej: "/videos/nia-loop.mp4" (deja vacío para usar imagen)
 const HERO_POSTER_IMG = "/images/nia-avatar.jpg"; // imagen fallback / poster
+
+const FAQ_ENTRIES = [
+  {
+    question: "¿Cuál es la zona más peligrosa de mi municipio?",
+    answer:
+      "Según el análisis de la plataforma, el cuadrante con mayor incidencia de [Tipo de Delito, Ej: Hurto] en el último mes es el sector [Nombre del Barrio/Comuna]. Te recomiendo consultar el Mapa Interactivo para ver el detalle y revisar el Módulo de Alerta Urbana para consejos de autocuidado.",
+  },
+  {
+    question: "¿Cómo puedo prevenir un hurto si voy caminando solo/a?",
+    answer:
+      "Mantente atento/a a tu entorno. Evita usar el celular en la calle de forma prolongada, lleva el bolso o morral cruzado y no exhibas objetos de valor. Si usas transporte público, verifica que sea formal. Puedes encontrar más tips en el Módulo Alerta Urbana.",
+  },
+  {
+    question: "¿Qué significa la alerta de riesgo que veo en mi tablero?",
+    answer:
+      "La alerta indica que las variables de tu zona (hora, día, tipo de delito) han mostrado un incremento reciente en el riesgo de [Tipo de Delito]. Es una señal para que aumentes tu precaución. Usa siempre las Rutas de Atención en caso de emergencia.",
+  },
+  {
+    question:
+      "Creo que estoy siendo víctima de violencia intrafamiliar, ¿qué hago?",
+    answer:
+      "Es importante que busques apoyo inmediatamente. En caso de emergencia, llama al 123 de la Policía o al 155 (Línea de Orientación a Mujeres). También puedes dirigirte a la Comisaría de Familia de tu municipio. Revisa el Módulo Hogar Seguro para conocer tus derechos y rutas.",
+  },
+  {
+    question: "¿Dónde puedo denunciar un caso de acoso sexual o violación?",
+    answer:
+      "Puedes denunciar en la Fiscalía General de la Nación (Línea 122) o ante la Policía Nacional (Línea 123 o CAI más cercano). Si necesitas acompañamiento psicosocial, contacta a la Secretaría de la Mujer y Equidad de Género de Santander.",
+  },
+  {
+    question:
+      "Si un vecino me pide ayuda por violencia en su casa, ¿cómo debo actuar?",
+    answer:
+      "No te expongas al riesgo. Llama de inmediato a la Línea 123 para reportar la situación. También puedes informar a la Comisaría de Familia. Tu acción puede salvar una vida.",
+  },
+  {
+    question: "¿Necesito ir a la Fiscalía para denunciar un hurto?",
+    answer:
+      "Para hurtos de menor cuantía y sin violencia, puedes intentar la denuncia virtual en la página de la Policía (ADENUNCIA) o la Fiscalía. Para hurtos con violencia o mayor cuantía, es preferible dirigirte a la estación de policía o URI de la Fiscalía.",
+  },
+  {
+    question: "¿Cuál es el número de la Policía en mi municipio?",
+    answer:
+      "El número de emergencia general es el 123. Para reportar directamente a la Policía de tu sector, puedes consultar el número del Cuadrante en el portal oficial o en el Tablero Administrador (si estuviera visible).",
+  },
+  {
+    question:
+      "¿Qué información necesito tener lista para interponer una denuncia?",
+    answer:
+      "Necesitarás: 1. Tu cédula, 2. La fecha y hora exactas del hecho, 3. La dirección o lugar preciso, y 4. Una descripción clara de los hechos y, si aplica, de los agresores o bienes hurtados. El Módulo Tu Voz Cuenta te guía en este proceso.",
+  },
+];
 
 const SYSTEM_PROMPT = `Eres NIA, la Asistente de Autocuidado y Seguridad Ciudadana de una plataforma que combina análisis de datos, mapas de riesgo y módulos pedagógicos para ayudar a las personas a cuidarse mejor en su territorio.
 
@@ -128,17 +177,11 @@ No prometas anonimato total a menos que el sistema lo garantice explícitamente 
 Sé NIA: una voz serena que informa, orienta y acompaña, ayudando a que cada persona tome decisiones más seguras y se conecte con las rutas de apoyo disponibles.`;
 
 const SUGGESTIONS = [
-  "¿Cuál es la zona con mayor riesgo de hurto en mi municipio y cómo puedo verlo en el mapa?",
-  "Dame recomendaciones para prevenir un hurto cuando voy caminando solo/a",
-  "¿Qué hago si creo que estoy viviendo violencia intrafamiliar?",
-  "¿Dónde puedo denunciar un caso de acoso sexual o violación?",
-  "¿Cómo puedo ayudar a un vecino si escucho que hay violencia en su casa?",
-  "¿Necesito ir a la Fiscalía o puedo denunciar un hurto por internet?",
-  "¿Qué información debo tener lista antes de hacer una denuncia?",
-  "Explícame qué módulos tiene la plataforma (Alerta Urbana, Hogar Seguro, Tu Voz Cuenta) y para qué sirven",
-  "¿Qué debo hacer si estoy en una situación de emergencia o siento que mi vida corre peligro?"
-];
+  // Todas las preguntas con respuesta fija
+  ...FAQ_ENTRIES.map((f) => f.question),
 
+  // Si quieres, mantienes algunas sugerencias “extra” que ya tenías
+];
 
 /** -------- PAGE -------- */
 export default function NiaChat() {
@@ -179,12 +222,19 @@ export default function NiaChat() {
   );
 
   const handleSuggestion = (text) => {
-    setInput(text);
-    setTimeout(() => handleSend(), 0);
+    handleSend(text);
   };
 
-  const handleSend = async () => {
-    const text = input.trim();
+  const handleSend = async (overrideText) => {
+    // Evitar que llegue un evento o algo raro
+    const raw =
+      typeof overrideText === "string"
+        ? overrideText
+        : typeof input === "string"
+        ? input
+        : "";
+
+    const text = raw.trim();
     if (!text) return;
 
     setInput("");
@@ -195,6 +245,24 @@ export default function NiaChat() {
     const next = [...messages, { role: "user", content: text }];
     setMessages(next);
 
+    // 1) Revisar si la pregunta coincide con alguna FAQ (match literal, case-insensitive)
+    const normalized = (s) => s.toLowerCase().trim();
+    const match = FAQ_ENTRIES.find(
+      (f) => normalized(f.question) === normalized(text)
+    );
+
+    if (match) {
+      // 2) Si hay match, respondemos con el texto literal y NO llamamos a Gemini
+      const answerMsg = { role: "model", content: match.answer };
+      setMessages((prev) => [...prev, answerMsg]);
+
+      setThinking(false);
+      setLoading(false);
+      abortRef.current = null;
+      return;
+    }
+
+    // 3) Si no es una de las FAQs, seguimos con el flujo normal de Gemini
     const chatSession = await getChatSession(next);
 
     const newAssistant = { role: "model", content: "" };
@@ -244,10 +312,6 @@ export default function NiaChat() {
       setThinking(false);
       setLoading(false);
       abortRef.current = null;
-      chatRef.current = await getChatSession([
-        ...next,
-        ...messages.slice(next.length),
-      ]);
     }
   };
 
@@ -415,7 +479,7 @@ export default function NiaChat() {
                   <div className="flex items-center gap-1.5">
                     <button
                       disabled={!canSend}
-                      onClick={handleSend}
+                      onClick={() => handleSend()}
                       className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-400 disabled:opacity-60"
                     >
                       {loading ? (

@@ -54,7 +54,7 @@ services:
       backend:
         condition: service_started
     ports:
-      - "80:80"
+      - "8081:80"    # 👈 antes era "80:80"
     networks: [app-net]
 
   ml-api:
