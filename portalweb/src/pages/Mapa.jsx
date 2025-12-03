@@ -34,15 +34,15 @@ export default function Mapa() {
 
   // ========= GOOGLE MAPS =========
   const loadGoogleAPI = async () => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
+    const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!key) {
       console.error("Falta VITE_GOOGLE_MAPS_API_KEY en .env");
       throw new Error("Google Maps API key missing");
     }
 
     setOptions({
-      apiKey,
-      version: "weekly",
+      key,
+      v: "weekly",
     });
 
     const { Map } = await importLibrary("maps");
