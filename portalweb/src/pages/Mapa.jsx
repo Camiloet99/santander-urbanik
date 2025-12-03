@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 //import HeatmapWithFilters from "@/components/ui/HeatmapWithFilters";
 
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
@@ -14,7 +9,7 @@ import {
   getDelitos,
 } from "@/services/seguridadService";
 
-// URL para heatmap 
+// URL para heatmap
 const HEATMAP_API_URL =
   import.meta.env.VITE_ML_HEATMAP_URL ||
   `${import.meta.env.VITE_ML_API_URL || "http://localhost:8000"}/heatmap`;
@@ -32,7 +27,7 @@ const GRUPOS_POBLACION = [
   { id: "MAYORES", label: "Adulto mayor 60+" },
 ];
 
-// Ajusta a los textos 
+// Ajusta a los textos
 const MAPA_GRUPOS_ETARIOS = {
   NINOS: ["0 a 12"],
   ADOLESCENTES: ["13 a 17"],
@@ -41,13 +36,7 @@ const MAPA_GRUPOS_ETARIOS = {
 };
 
 function getConteo(row) {
-  return (
-    row.total_delitos ??
-    row.total ??
-    row.cantidad ??
-    row.count ??
-    0
-  );
+  return row.total_delitos ?? row.total ?? row.cantidad ?? row.count ?? 0;
 }
 
 export default function Mapa() {
@@ -98,47 +87,75 @@ export default function Mapa() {
     setMap(mapa);
   };
 
-  const updateHeatmap = async (points) => {
+  const updateHeatmap = async (weightedPoints) => {
     if (!map) return;
     const { HeatmapLayer } = await importLibrary("visualization");
 
-    const heatmapData = points.map(
-      (p) => new google.maps.LatLng(p.lat, p.lng)
-    );
-
     if (!heatmapRef.current) {
       heatmapRef.current = new HeatmapLayer({
-        data: heatmapData,
+        data: weightedPoints,
         radius: 40,
       });
       heatmapRef.current.setMap(map);
     } else {
-      heatmapRef.current.setData(heatmapData);
+      heatmapRef.current.setData(weightedPoints);
     }
   };
-
   const fetchHeatmapData = async () => {
     if (!map) return;
     setLoadingHeatmap(true);
+
     try {
       let url = HEATMAP_API_URL;
-      const params = [];
+      const params: string[] = [];
+
       if (categoria) params.push(`categoria=${encodeURIComponent(categoria)}`);
       if (anio) params.push(`anio=${encodeURIComponent(anio)}`);
       if (mes) params.push(`mes=${encodeURIComponent(mes)}`);
+
       if (params.length > 0) url += "?" + params.join("&");
 
       const response = await fetch(url);
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        console.error("Error en el endpoint de heatmap:", body);
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
 
-      const points = (data || []).map((p) => ({
-        lat: p.lat ?? p.latitud,
-        lng: p.lng ?? p.longitud,
-      }));
+      // Normalizamos un poco pesos para que no se nos dispare el heatmap
+      const maxCount = data.reduce(
+        (max, p) => Math.max(max, p.count ?? p.total ?? 0),
+        0
+      );
 
-      await updateHeatmap(points);
+      const weightedPoints =
+        (data || [])
+          .map((p) => {
+            const lat = p.lat ?? p.latitud;
+            const lng = p.lng ?? p.longitud;
+            const rawCount = p.count ?? p.total ?? 1;
+
+            if (lat == null || lng == null) return null;
+
+            // Escala opcional (ej: 1–10) para que no “explote” visualmente
+            const weight =
+              maxCount > 0 ? Math.max(1, (rawCount / maxCount) * 10) : 1;
+
+            return {
+              location: new google.maps.LatLng(lat, lng),
+              weight,
+            };
+          })
+          .filter(Boolean) ?? [];
+
+      await updateHeatmap(weightedPoints);
     } catch (err) {
       console.error("Error cargando datos del heatmap:", err);
+      // aquí si quieres podrías setear un error de UI:
+      // setError("Error al cargar el mapa de calor.");
     } finally {
       setLoadingHeatmap(false);
     }
@@ -360,9 +377,7 @@ export default function Mapa() {
           {loadingRiesgo && (
             <p className="mt-2 text-white/60">Cargando datos…</p>
           )}
-          {error && (
-            <p className="mt-2 text-red-400 text-[11px]">{error}</p>
-          )}
+          {error && <p className="mt-2 text-red-400 text-[11px]">{error}</p>}
         </section>
 
         {/* Municipios más críticos */}
@@ -403,9 +418,7 @@ export default function Mapa() {
 
         {/* Impacto por grupo poblacional */}
         <section className="rounded-2xl bg-[#151827] border border-white/10 px-4 py-3 text-xs">
-          <p className="font:semicolon mb-2">
-            Impacto por grupo poblacional
-          </p>
+          <p className="font-semibold mb-2">Impacto por grupo poblacional</p>
           <p className="text-white/60 text-[11px] mb-3">
             En el municipio{" "}
             <span className="font-semibold">
@@ -416,8 +429,7 @@ export default function Mapa() {
 
           {!municipioSeleccionado && (
             <p className="text-[11px] text-white/60 mb-3">
-              Selecciona un municipio en la lista de arriba para ver el
-              detalle.
+              Selecciona un municipio en la lista de arriba para ver el detalle.
             </p>
           )}
 
@@ -467,14 +479,13 @@ export default function Mapa() {
                         {delitoGrupoSeleccionado.categoria}
                       </p>
                       <p className="text-white/60">
-                        {delitoGrupoSeleccionado.total} casos
-                        registrados.
+                        {delitoGrupoSeleccionado.total} casos registrados.
                       </p>
                     </>
                   ) : (
                     <p className="text-white/60">
-                      No hay datos suficientes para este grupo en el
-                      municipio seleccionado.
+                      No hay datos suficientes para este grupo en el municipio
+                      seleccionado.
                     </p>
                   )}
                 </div>
