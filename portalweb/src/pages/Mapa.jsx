@@ -1,5 +1,5 @@
+/* global google */
 import React, { useEffect, useMemo, useRef, useState } from "react";
-//import HeatmapWithFilters from "@/components/ui/HeatmapWithFilters";
 
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { useAuth } from "@/context/AuthContext";
@@ -70,8 +70,9 @@ export default function Mapa() {
     });
 
     const { Map } = await importLibrary("maps");
-    const { HeatmapLayer } = await importLibrary("visualization");
-    return { Map, HeatmapLayer };
+    // Importamos aquí una vez para que esté listo
+    await importLibrary("visualization");
+    return { Map };
   };
 
   const initializeMap = (MapClass) => {
@@ -89,6 +90,7 @@ export default function Mapa() {
 
   const updateHeatmap = async (weightedPoints) => {
     if (!map) return;
+
     const { HeatmapLayer } = await importLibrary("visualization");
 
     if (!heatmapRef.current) {
@@ -101,13 +103,14 @@ export default function Mapa() {
       heatmapRef.current.setData(weightedPoints);
     }
   };
+
   const fetchHeatmapData = async () => {
     if (!map) return;
     setLoadingHeatmap(true);
 
     try {
       let url = HEATMAP_API_URL;
-      const params: string[] = [];
+      const params = [];
 
       if (categoria) params.push(`categoria=${encodeURIComponent(categoria)}`);
       if (anio) params.push(`anio=${encodeURIComponent(anio)}`);
@@ -124,37 +127,39 @@ export default function Mapa() {
       }
 
       const data = await response.json();
+      const lista = Array.isArray(data.resultados)
+        ? data.resultados
+        : data || [];
 
-      // Normalizamos un poco pesos para que no se nos dispare el heatmap
-      const maxCount = data.reduce(
-        (max, p) => Math.max(max, p.count ?? p.total ?? 0),
-        0
-      );
+      // Calculamos un máximo para escalar pesos y que no "explote" el heatmap
+      const maxCount = lista.reduce((max, p) => {
+        const c = p.count ?? p.total ?? p.total_delitos ?? 0;
+        return c > max ? c : max;
+      }, 0);
 
-      const weightedPoints =
-        (data || [])
-          .map((p) => {
-            const lat = p.lat ?? p.latitud;
-            const lng = p.lng ?? p.longitud;
-            const rawCount = p.count ?? p.total ?? 1;
+      const weightedPoints = lista
+        .map((p) => {
+          const lat = p.lat ?? p.latitud;
+          const lng = p.lng ?? p.longitud;
+          const rawCount = p.count ?? p.total ?? p.total_delitos ?? 1;
 
-            if (lat == null || lng == null) return null;
+          if (lat == null || lng == null) return null;
 
-            // Escala opcional (ej: 1–10) para que no “explote” visualmente
-            const weight =
-              maxCount > 0 ? Math.max(1, (rawCount / maxCount) * 10) : 1;
+          // Escalamos pesos a rango aprox 1–10 para visual más agradable
+          const weight =
+            maxCount > 0 ? Math.max(1, (rawCount / maxCount) * 10) : 1;
 
-            return {
-              location: new google.maps.LatLng(lat, lng),
-              weight,
-            };
-          })
-          .filter(Boolean) ?? [];
+          return {
+            location: new google.maps.LatLng(lat, lng),
+            weight,
+          };
+        })
+        .filter(Boolean);
 
       await updateHeatmap(weightedPoints);
     } catch (err) {
       console.error("Error cargando datos del heatmap:", err);
-      // aquí si quieres podrías setear un error de UI:
+      // Si quieres mostrarlo a la derecha:
       // setError("Error al cargar el mapa de calor.");
     } finally {
       setLoadingHeatmap(false);
@@ -206,6 +211,7 @@ export default function Mapa() {
 
   const topMunicipios = useMemo(() => {
     const byMun = new Map();
+
     for (const r of riesgo || []) {
       const key = r.municipio;
       const actual = byMun.get(key);
@@ -213,6 +219,7 @@ export default function Mapa() {
         byMun.set(key, r);
       }
     }
+
     return Array.from(byMun.values())
       .sort((a, b) => (b.riesgo_score || 0) - (a.riesgo_score || 0))
       .slice(0, 5);
