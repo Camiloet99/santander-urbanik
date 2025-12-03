@@ -3,7 +3,7 @@ from typing import List, Optional
 from typing import Optional
 
 import sqlite3
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -269,21 +269,19 @@ def resumen_delitos(
 # -------------------------------------------------------------
 # Endpoint para el mapa de calor con coordenadas
 # -------------------------------------------------------------
-# -------------------------------------------------------------
-# Endpoint para el mapa de calor con coordenadas
-# -------------------------------------------------------------
+app = FastAPI()
+
+DB_PATH = "data/seguridad_santander.db"  # o la ruta que ya tenías
+
 @app.get("/heatmap")
 def get_heatmap(
-    categoria: str = Query(..., description="HURTO / VIOLENCIA_INTRAFAMILIAR / DELITOS_SEXUALES"),
-    anio: Optional[int] = Query(None),
+      categoria: str = Query(...),               # obligatorio
+    anio: Optional[int] = Query(None),         
     mes: Optional[int] = Query(None),
     genero: Optional[str] = Query(None),
     grupo_etario: Optional[str] = Query(None),
 ):
-    # Normalizamos la categoría por si llegara en minúsculas
-    categoria = categoria.upper().strip()
-
-    # Filtros base
+    
     filtros = ["d.categoria = ?"]
     params: list = [categoria]
 
@@ -303,7 +301,7 @@ def get_heatmap(
         filtros.append("d.grupo_etario = ?")
         params.append(grupo_etario)
 
-    where_clause = " AND ".join(filtros)
+    where_clause = " AND ".join(filtros) if filtros else "1=1"
 
     sql = f"""
         SELECT
@@ -319,8 +317,11 @@ def get_heatmap(
         HAVING c.lat IS NOT NULL AND c.lng IS NOT NULL
     """
 
-    # Usamos tu helper query_db para no repetir código de conexión
-    rows = query_db(sql, tuple(params))
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(sql, tuple(params))
+    rows = cur.fetchall()
+    conn.close()
 
     return [
         {
@@ -331,6 +332,85 @@ def get_heatmap(
         }
         for row in rows
     ]
+@app.get("/estadisticas")
+def estadisticas(
+    categoria: str = Query(..., description="Delito a analizar"),
+    anio: Optional[int] = None,
+):
+    """
+    Devuelve:
+    - Total de casos del delito
+    - Municipio con más casos y su porcentaje
+    - Delito más frecuente en todo el departamento
+    - Grupo poblacional más afectado
+    """
+    params: list = [categoria]
+    filtros = ["categoria = ?"]
 
+    if anio:
+        filtros.append("anio = ?")
+        params.append(anio)
 
+    where_clause = "WHERE " + " AND ".join(filtros)
 
+    # Total general
+    sql_total = f"""
+        SELECT SUM(cantidad) AS total
+        FROM delitos_analitica
+        {where_clause};
+    """
+
+    total_data = query_db(sql_total, tuple(params))
+    total = total_data[0]["total"] if total_data and total_data[0]["total"] else 0
+
+    # Municipio con más casos
+    sql_mun = f"""
+        SELECT municipio, SUM(cantidad) AS total_mun
+        FROM delitos_analitica
+        {where_clause}
+        GROUP BY municipio
+        ORDER BY total_mun DESC
+        LIMIT 1;
+    """
+
+    mun_data = query_db(sql_mun, tuple(params))
+    municipio_top = mun_data[0]["municipio"] if mun_data else None
+    total_mun = mun_data[0]["total_mun"] if mun_data else 0
+
+    porcentaje_mun = round((total_mun / total) * 100, 2) if total > 0 else 0
+
+    # Delito más frecuente (en general)
+    sql_delito = """
+        SELECT categoria, SUM(cantidad) AS total
+        FROM delitos_analitica
+        GROUP BY categoria
+        ORDER BY total DESC
+        LIMIT 1;
+    """
+    delito_top = query_db(sql_delito)[0]
+
+    # Grupo poblacional más afectado
+    sql_grupo = f"""
+        SELECT grupo_etario, SUM(cantidad) AS total
+        FROM delitos_analitica
+        {where_clause}
+        GROUP BY grupo_etario
+        ORDER BY total DESC
+        LIMIT 1;
+    """
+
+    grupo_data = query_db(sql_grupo, tuple(params))
+    grupo = grupo_data[0]["grupo_etario"] if grupo_data else None
+    grupo_total = grupo_data[0]["total"] if grupo_data else 0
+
+    return {
+        "total_casos": total,
+        "municipio_mas_afectado": municipio_top,
+        "casos_en_municipio": total_mun,
+        "porcentaje_departamental": porcentaje_mun,
+        "delito_mas_frecuente": delito_top,
+        "grupo_mas_afectado": {
+            "nombre": grupo,
+            "casos": grupo_total,
+        },
+    }

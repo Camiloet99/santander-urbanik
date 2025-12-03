@@ -4,6 +4,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+//import HeatmapWithFilters from "@/components/ui/HeatmapWithFilters";
 
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { useAuth } from "@/context/AuthContext";
@@ -143,10 +144,6 @@ export default function Mapa() {
     }
   };
 
-
-
-
-  
   // Inicializar mapa
   useEffect(() => {
     (async () => {
