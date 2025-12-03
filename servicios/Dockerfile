@@ -9,6 +9,7 @@ COPY target/iudigital-1.0.0.jar app.jar
 EXPOSE 8080
 
 # Mejoras pequeñitas al runtime
+
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

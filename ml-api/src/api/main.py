@@ -6,7 +6,7 @@ import sqlite3
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+BASE_DIR = Path(__file__).resolve().parents[2]  
 DB_PATH = BASE_DIR / "db" / "seguridad_santander.db"
 
 app = FastAPI(title="API Seguridad Santander")
@@ -269,9 +269,6 @@ def resumen_delitos(
 # -------------------------------------------------------------
 # Endpoint para el mapa de calor con coordenadas
 # -------------------------------------------------------------
-app = FastAPI()
-
-DB_PATH = "data/seguridad_santander.db"  # o la ruta que ya tenías
 
 @app.get("/heatmap")
 def get_heatmap(
