@@ -1,13 +1,7 @@
 /* global google */
 import React, { useEffect, useMemo, useRef, useState } from "react";
-
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
 import { useAuth } from "@/context/AuthContext";
-import {
-  getMunicipios,
-  getRiesgo,
-  getDelitos,
-} from "@/services/seguridadService";
 
 // URL para heatmap
 const HEATMAP_API_URL =
@@ -19,25 +13,6 @@ const CATEGORIAS = [
   { value: "VIOLENCIA_INTRAFAMILIAR", label: "Violencia intrafamiliar" },
   { value: "DELITOS_SEXUALES", label: "Delitos sexuales" },
 ];
-
-const GRUPOS_POBLACION = [
-  { id: "NINOS", label: "Niñas/os 0–12" },
-  { id: "ADOLESCENTES", label: "Adolescentes 13–17" },
-  { id: "ADULTOS", label: "Adultos 18–59" },
-  { id: "MAYORES", label: "Adulto mayor 60+" },
-];
-
-// Ajusta a los textos
-const MAPA_GRUPOS_ETARIOS = {
-  NINOS: ["0 a 12"],
-  ADOLESCENTES: ["13 a 17"],
-  ADULTOS: ["18 a 59"],
-  MAYORES: ["60 y más", "60 y mas", "60+"],
-};
-
-function getConteo(row) {
-  return row.total_delitos ?? row.total ?? row.cantidad ?? row.count ?? 0;
-}
 
 export default function Mapa() {
   const { session } = useAuth();
@@ -51,26 +26,27 @@ export default function Mapa() {
   const [anio, setAnio] = useState(String(new Date().getFullYear()));
   const [mes, setMes] = useState("");
 
-  const [riesgo, setRiesgo] = useState([]);
-  const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
-  const [delitosMunicipio, setDelitosMunicipio] = useState([]);
-
-  const [grupoSeleccionado, setGrupoSeleccionado] = useState("ADULTOS");
-
-  const [loadingRiesgo, setLoadingRiesgo] = useState(false);
   const [loadingHeatmap, setLoadingHeatmap] = useState(false);
-  const [loadingGrupos, setLoadingGrupos] = useState(false);
   const [error, setError] = useState("");
+
+  // Datos crudos que vienen del endpoint /heatmap
+  const [heatmapData, setHeatmapData] = useState([]);
 
   // ========= GOOGLE MAPS =========
   const loadGoogleAPI = async () => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      console.error("Falta VITE_GOOGLE_MAPS_API_KEY en .env");
+      throw new Error("Google Maps API key missing");
+    }
+
     setOptions({
-      key: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-      v: "weekly",
+      apiKey,
+      version: "weekly",
     });
 
     const { Map } = await importLibrary("maps");
-    // Importamos aquí una vez para que esté listo
+    // Cargamos visualization una vez
     await importLibrary("visualization");
     return { Map };
   };
@@ -106,7 +82,9 @@ export default function Mapa() {
 
   const fetchHeatmapData = async () => {
     if (!map) return;
+
     setLoadingHeatmap(true);
+    setError("");
 
     try {
       let url = HEATMAP_API_URL;
@@ -131,7 +109,10 @@ export default function Mapa() {
         ? data.resultados
         : data || [];
 
-      // Calculamos un máximo para escalar pesos y que no "explote" el heatmap
+      // Guardamos los datos crudos para usarlos en el panel derecho
+      setHeatmapData(lista);
+
+      // --- Construimos los puntos ponderados para el heatmap ---
       const maxCount = lista.reduce((max, p) => {
         const c = p.count ?? p.total ?? p.total_delitos ?? 0;
         return c > max ? c : max;
@@ -145,7 +126,7 @@ export default function Mapa() {
 
           if (lat == null || lng == null) return null;
 
-          // Escalamos pesos a rango aprox 1–10 para visual más agradable
+          // Escalamos pesos a 1–10 para que el mapa sea legible
           const weight =
             maxCount > 0 ? Math.max(1, (rawCount / maxCount) * 10) : 1;
 
@@ -159,8 +140,7 @@ export default function Mapa() {
       await updateHeatmap(weightedPoints);
     } catch (err) {
       console.error("Error cargando datos del heatmap:", err);
-      // Si quieres mostrarlo a la derecha:
-      // setError("Error al cargar el mapa de calor.");
+      setError("Error al cargar el mapa de calor.");
     } finally {
       setLoadingHeatmap(false);
     }
@@ -184,108 +164,73 @@ export default function Mapa() {
     if (map) {
       fetchHeatmapData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, categoria, anio, mes]);
 
-  // ========= API RIESGO Y MUNICIPIOS =========
-  useEffect(() => {
-    (async () => {
-      setLoadingRiesgo(true);
-      setError("");
-      try {
-        const data = await getRiesgo({
-          categoria,
-          anio,
-          mes: mes || undefined,
-          limit: 500,
-        });
-        const lista = Array.isArray(data.resultados) ? data.resultados : data;
-        setRiesgo(lista || []);
-      } catch (err) {
-        console.error(err);
-        setError("Error al cargar los datos de riesgo.");
-      } finally {
-        setLoadingRiesgo(false);
-      }
-    })();
-  }, [categoria, anio, mes]);
+  // ========= AGREGADOS POR MUNICIPIO (a partir del heatmap) =========
 
-  const topMunicipios = useMemo(() => {
+  const agregados = useMemo(() => {
     const byMun = new Map();
 
-    for (const r of riesgo || []) {
-      const key = r.municipio;
-      const actual = byMun.get(key);
-      if (!actual || (r.riesgo_score || 0) > (actual.riesgo_score || 0)) {
-        byMun.set(key, r);
-      }
+    for (const p of heatmapData || []) {
+      const nombre = p.municipio || "SIN MUNICIPIO";
+      const count = p.count ?? p.total ?? p.total_delitos ?? 0;
+
+      const prev = byMun.get(nombre) || { municipio: nombre, total: 0 };
+      prev.total += count;
+      byMun.set(nombre, prev);
     }
 
-    return Array.from(byMun.values())
-      .sort((a, b) => (b.riesgo_score || 0) - (a.riesgo_score || 0))
+    const lista = Array.from(byMun.values());
+    const max = lista.reduce((m, item) => Math.max(m, item.total), 0);
+    const totalGlobal = lista.reduce((s, item) => s + item.total, 0);
+
+    const listaConRiesgo = lista.map((item) => {
+      let nivel_riesgo = "BAJO";
+      if (max > 0) {
+        const ratio = item.total / max;
+        if (ratio >= 0.66) nivel_riesgo = "ALTO";
+        else if (ratio >= 0.33) nivel_riesgo = "MEDIO";
+      }
+      return {
+        municipio: item.municipio,
+        delitos_observados: item.total,
+        nivel_riesgo,
+      };
+    });
+
+    return {
+      lista: listaConRiesgo,
+      totalGlobal,
+    };
+  }, [heatmapData]);
+
+  const topMunicipios = useMemo(() => {
+    return agregados.lista
+      .slice()
+      .sort((a, b) => b.delitos_observados - a.delitos_observados)
       .slice(0, 5);
-  }, [riesgo]);
+  }, [agregados]);
 
-  // ========= API DELITOS POR GRUPO =========
-  useEffect(() => {
-    if (!municipioSeleccionado) {
-      setDelitosMunicipio([]);
-      return;
-    }
+  const [municipioSeleccionado, setMunicipioSeleccionado] = useState("");
 
-    (async () => {
-      setLoadingGrupos(true);
-      try {
-        const data = await getDelitos({
-          municipio: municipioSeleccionado,
-          anio,
-          categoria: categoria || undefined,
-          limit: 1000,
-        });
-        const lista = Array.isArray(data.resultados) ? data.resultados : data;
-        setDelitosMunicipio(lista || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoadingGrupos(false);
-      }
-    })();
-  }, [municipioSeleccionado, categoria, anio]);
+  const municipioDetalle = useMemo(() => {
+    if (!municipioSeleccionado) return null;
+    const item = agregados.lista.find(
+      (m) => m.municipio === municipioSeleccionado
+    );
+    if (!item) return null;
 
-  const resumenGrupos = useMemo(() => {
-    if (!delitosMunicipio.length) return {};
-    const resultado = {};
+    const porcentaje =
+      agregados.totalGlobal > 0
+        ? (item.delitos_observados / agregados.totalGlobal) * 100
+        : 0;
 
-    for (const grupo of GRUPOS_POBLACION) {
-      const etiquetas = MAPA_GRUPOS_ETARIOS[grupo.id] || [];
-      const filasGrupo = delitosMunicipio.filter((d) =>
-        etiquetas.includes((d.grupo_etario || "").trim())
-      );
-
-      const acumulado = new Map();
-      for (const f of filasGrupo) {
-        const cat = f.categoria || "OTRO";
-        const actual = acumulado.get(cat) || 0;
-        acumulado.set(cat, actual + getConteo(f));
-      }
-
-      if (acumulado.size === 0) {
-        resultado[grupo.id] = null;
-      } else {
-        let mejorCat = null;
-        let mejorValor = -Infinity;
-        for (const [cat, total] of acumulado.entries()) {
-          if (total > mejorValor) {
-            mejorValor = total;
-            mejorCat = { categoria: cat, total };
-          }
-        }
-        resultado[grupo.id] = mejorCat;
-      }
-    }
-    return resultado;
-  }, [delitosMunicipio]);
-
-  const delitoGrupoSeleccionado = resumenGrupos[grupoSeleccionado];
+    return {
+      ...item,
+      porcentaje,
+    };
+  }, [municipioSeleccionado, agregados]);
 
   // ========= UI =========
   return (
@@ -366,8 +311,9 @@ export default function Mapa() {
         <section className="rounded-2xl bg-[#151827] border border-white/10 px-4 py-3 text-xs">
           <p className="font-semibold mb-2">Nivel de riesgo por municipio</p>
           <p className="text-white/60 text-[11px] mb-3">
-            ¿Qué municipios están en riesgo BAJO, MEDIO o ALTO para{" "}
-            <span className="font-semibold">{categoria}</span> en {anio}?
+            El nivel se calcula a partir del número relativo de casos en cada
+            municipio para <span className="font-semibold">{categoria}</span> en{" "}
+            {anio}.
           </p>
           <div className="flex items-center gap-3 mb-2">
             <span className="inline-block h-3 w-3 rounded-full bg-[#22c55e]" />
@@ -381,9 +327,6 @@ export default function Mapa() {
             <span className="inline-block h-3 w-3 rounded-full bg-[#ef4444]" />
             <span>Alto</span>
           </div>
-          {loadingRiesgo && (
-            <p className="mt-2 text-white/60">Cargando datos…</p>
-          )}
           {error && <p className="mt-2 text-red-400 text-[11px]">{error}</p>}
         </section>
 
@@ -391,11 +334,11 @@ export default function Mapa() {
         <section className="rounded-2xl bg-[#151827] border border-white/10 px-4 py-3 text-xs">
           <p className="font-semibold mb-2">Municipios más críticos</p>
           <p className="text-white/60 text-[11px] mb-3">
-            Top 5 municipios con mayor riesgo estimado para{" "}
+            Top 5 municipios con mayor número de casos estimados para{" "}
             <span className="font-semibold">{categoria}</span> en {anio}.
           </p>
 
-          {topMunicipios.length === 0 && !loadingRiesgo && (
+          {topMunicipios.length === 0 && !loadingHeatmap && (
             <p className="text-white/60 text-[11px]">
               Sin datos para los filtros actuales.
             </p>
@@ -423,81 +366,54 @@ export default function Mapa() {
           ))}
         </section>
 
-        {/* Impacto por grupo poblacional */}
+        {/* Detalle del municipio seleccionado */}
         <section className="rounded-2xl bg-[#151827] border border-white/10 px-4 py-3 text-xs">
-          <p className="font-semibold mb-2">Impacto por grupo poblacional</p>
+          <p className="font-semibold mb-2">Detalle del municipio</p>
           <p className="text-white/60 text-[11px] mb-3">
-            En el municipio{" "}
-            <span className="font-semibold">
-              {municipioSeleccionado || "…"}
-            </span>
-            , ¿qué delito afecta más a cada grupo?
+            Selecciona un municipio en la lista de arriba para ver su peso
+            relativo dentro de los casos registrados.
           </p>
 
           {!municipioSeleccionado && (
-            <p className="text-[11px] text-white/60 mb-3">
-              Selecciona un municipio en la lista de arriba para ver el detalle.
+            <p className="text-[11px] text-white/60">
+              Aún no has seleccionado un municipio.
             </p>
           )}
 
-          {municipioSeleccionado && (
-            <>
-              <div className="grid grid-cols-2 gap-2 mb-3">
-                {GRUPOS_POBLACION.map((g) => {
-                  const active = g.id === grupoSeleccionado;
-                  return (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => setGrupoSeleccionado(g.id)}
-                      className={[
-                        "rounded-xl border px-3 py-2 text-[11px] text-left transition",
-                        active
-                          ? "border-[#5b4bff] bg-[#5b4bff]/20 text-white"
-                          : "border-white/15 bg-transparent text-white/80 hover:border-white/60",
-                      ].join(" ")}
-                    >
-                      {g.label}
-                    </button>
-                  );
-                })}
-              </div>
+          {municipioSeleccionado && municipioDetalle && (
+            <div className="text-[11px] text-white/80 space-y-1">
+              <p>
+                Municipio:{" "}
+                <span className="font-semibold">
+                  {municipioDetalle.municipio}
+                </span>
+              </p>
+              <p>
+                Casos estimados:{" "}
+                <span className="font-semibold">
+                  {municipioDetalle.delitos_observados.toLocaleString("es-CO")}
+                </span>
+              </p>
+              <p className="text-white/60">
+                Representa aproximadamente{" "}
+                <span className="font-semibold">
+                  {municipioDetalle.porcentaje.toFixed(1)}%
+                </span>{" "}
+                del total de casos del departamento en los filtros actuales.
+              </p>
+              <p className="text-white/60">
+                Nivel de riesgo:{" "}
+                <span className="font-semibold">
+                  {municipioDetalle.nivel_riesgo}
+                </span>
+              </p>
+            </div>
+          )}
 
-              {loadingGrupos && (
-                <p className="text-[11px] text-white/60">Cargando…</p>
-              )}
-
-              {!loadingGrupos && (
-                <div className="text-[11px] text-white/80">
-                  {delitoGrupoSeleccionado ? (
-                    <>
-                      <p className="mb-1">
-                        Delito más frecuente en{" "}
-                        <span className="font-semibold">
-                          {
-                            GRUPOS_POBLACION.find(
-                              (g) => g.id === grupoSeleccionado
-                            )?.label
-                          }
-                        </span>
-                        :
-                      </p>
-                      <p className="font-semibold">
-                        {delitoGrupoSeleccionado.categoria}
-                      </p>
-                      <p className="text-white/60">
-                        {delitoGrupoSeleccionado.total} casos registrados.
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-white/60">
-                      No hay datos suficientes para este grupo en el municipio
-                      seleccionado.
-                    </p>
-                  )}
-                </div>
-              )}
-            </>
+          {municipioSeleccionado && !municipioDetalle && (
+            <p className="text-[11px] text-white/60">
+              No se encontraron datos para el municipio seleccionado.
+            </p>
           )}
         </section>
       </aside>
