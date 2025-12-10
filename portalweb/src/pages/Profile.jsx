@@ -399,7 +399,6 @@ export default function Profile() {
 
             {/* Género */}
             <div>
-              <label className="block text-xs text-white/70 mb-1">Género</label>
               <div className="relative">
                 <select
                   value={form.genero}
@@ -458,9 +457,6 @@ export default function Profile() {
 
             {/* Teléfono / celular */}
             <div>
-              <label className="block text-xs text-white/70 mb-1">
-                Celular
-              </label>
               <div className="flex items-stretch gap-2">
                 <div className="w-[84px] sm:w-[96px] shrink-0">
                   <Input value="+57" onChange={() => {}} disabled />
@@ -482,9 +478,6 @@ export default function Profile() {
 
             {/* Enfoque diferencial */}
             <div>
-              <label className="block text-xs text-white/70 mb-1">
-                Enfoque diferencial
-              </label>
               <select
                 value={form.enfoque}
                 onChange={(e) =>

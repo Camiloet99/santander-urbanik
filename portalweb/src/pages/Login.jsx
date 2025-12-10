@@ -72,7 +72,8 @@ export default function AuthGateway() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const FORM_WIDTH = "max-w-[420px]";
+  // Más amigable en mobile: full width + breakpoints
+  const FORM_WIDTH = "w-full max-w-sm sm:max-w-[420px]";
   const isEmail = (v) => /\S+@\S+\.\S+/.test(v);
 
   // --------- LOGIN ---------
@@ -189,7 +190,6 @@ export default function AuthGateway() {
   function validateSignupSecurity(values, rules) {
     const errs = {};
 
-    // ahora aquí validamos rango, género y enfoque
     if (!values.ageRange) {
       errs.ageRange = "Selecciona un rango de edad";
     }
@@ -223,6 +223,7 @@ export default function AuthGateway() {
       setSignupStep(2);
     }
   }
+
   async function handleSignupSubmit(e) {
     e.preventDefault();
 
@@ -263,7 +264,7 @@ export default function AuthGateway() {
     }
   }
 
-  // --------- FORGOT (se mantiene igual, con verificación de identidad) ---------
+  // --------- FORGOT ---------
   const [forgotIdValues, setForgotIdValues] = useState({ email: "", dni: "" });
   const [forgotIdErrors, setForgotIdErrors] = useState({ email: "", dni: "" });
   const [forgotGeneralErr, setForgotGeneralErr] = useState("");
@@ -372,7 +373,6 @@ export default function AuthGateway() {
     firstFieldRef.current?.focus?.();
   }, [mode, forgotStep, signupStep]);
 
-  // El stepper ahora solo se usa para "forgot" (2 pasos)
   const showStepper =
     (mode === "forgot" && (forgotStep === 1 || forgotStep === 2)) ||
     (mode === "signup" && (signupStep === 1 || signupStep === 2));
@@ -381,16 +381,16 @@ export default function AuthGateway() {
     mode === "forgot" ? forgotStep - 1 : mode === "signup" ? signupStep - 1 : 0;
 
   return (
-    <div className="min-h-screen bg-[#0f1422] text-white flex items-center justify-center">
-      <div className="w-full max-w-[1400px] px-4 py-6">
-        <div className="grid items-center gap-10 md:gap-12 lg:gap-16 lg:grid-cols-[440px_minmax(0,1fr)]">
+    <div className="min-h-screen bg-[#0f1422] text-white flex items-start md:items-center justify-center">
+      <div className="w-full max-w-[1400px] px-4 py-6 sm:py-8 md:py-10">
+        <div className="grid items-start md:items-center gap-8 sm:gap-10 md:gap-12 lg:gap-16 lg:grid-cols-[440px_minmax(0,1fr)]">
           {/* Columna izquierda */}
           <div className="w-full">
-            <div className={`${FORM_WIDTH} mx-auto mb-8`}>
+            <div className={`${FORM_WIDTH} mx-auto mb-6 sm:mb-8`}>
               <img
                 src={brandLogo}
                 alt="Urbanik"
-                className="mx-auto block w-[70%] md:w-[64%]"
+                className="mx-auto block w-[68%] sm:w-[64%] md:w-[60%]"
               />
             </div>
 
@@ -407,7 +407,7 @@ export default function AuthGateway() {
                         if (t.key === "forgot") setForgotStep(1);
                         if (t.key === "signup") setSignupStep(1);
                       }}
-                      className="relative z-10 flex-1 py-2 text-sm rounded-full"
+                      className="relative z-10 flex-1 py-2 text-xs sm:text-sm rounded-full"
                     >
                       <motion.span
                         className={`block text-center ${
@@ -435,7 +435,7 @@ export default function AuthGateway() {
             </div>
 
             <div
-              className={`${FORM_WIDTH} mx-auto relative rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/10 p-5 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]`}
+              className={`${FORM_WIDTH} mx-auto relative rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/10 p-4 sm:p-5 md:p-6 shadow-[0_20px_60px_rgba(0,0,0,0.35)]`}
             >
               {showStepper && <ProgressDots total={2} index={stepIndex} />}
 
@@ -445,7 +445,7 @@ export default function AuthGateway() {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="min-h-[420px]"
+                className="min-h-[360px] sm:min-h-[400px] md:min-h-[420px]"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   {mode === "login" && (
@@ -488,7 +488,7 @@ export default function AuthGateway() {
                     </motion.div>
                   )}
 
-                  {/* SIGNUP: un solo paso */}
+                  {/* SIGNUP */}
                   {mode === "signup" && signupStep === 1 && (
                     <motion.div key="signup-1" layout>
                       <SignupPersonalStep

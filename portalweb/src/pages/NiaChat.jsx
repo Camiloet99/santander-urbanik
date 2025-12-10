@@ -183,7 +183,6 @@ const SUGGESTIONS = [
   // Si quieres, mantienes algunas sugerencias “extra” que ya tenías
 ];
 
-/** -------- PAGE -------- */
 export default function NiaChat() {
   const [messages, setMessages] = useState(() => {
     const stored = localStorage.getItem(LS_KEY);
@@ -226,7 +225,6 @@ export default function NiaChat() {
   };
 
   const handleSend = async (overrideText) => {
-    // Evitar que llegue un evento o algo raro
     const raw =
       typeof overrideText === "string"
         ? overrideText
@@ -245,14 +243,12 @@ export default function NiaChat() {
     const next = [...messages, { role: "user", content: text }];
     setMessages(next);
 
-    // 1) Revisar si la pregunta coincide con alguna FAQ (match literal, case-insensitive)
     const normalized = (s) => s.toLowerCase().trim();
     const match = FAQ_ENTRIES.find(
       (f) => normalized(f.question) === normalized(text)
     );
 
     if (match) {
-      // 2) Si hay match, respondemos con el texto literal y NO llamamos a Gemini
       const answerMsg = { role: "model", content: match.answer };
       setMessages((prev) => [...prev, answerMsg]);
 
@@ -262,7 +258,6 @@ export default function NiaChat() {
       return;
     }
 
-    // 3) Si no es una de las FAQs, seguimos con el flujo normal de Gemini
     const chatSession = await getChatSession(next);
 
     const newAssistant = { role: "model", content: "" };
@@ -328,13 +323,17 @@ export default function NiaChat() {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-80px)]">
-      {/* BG — mismo lenguaje visual del sitio */}
+    <div
+      className="
+        relative flex min-h-[calc(100vh-80px)] flex-col 
+        overflow-x-hidden
+      "
+    >
+      {/* BG */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 bg-[#0b1220]"
       />
-      {/* halos azules/lilas */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 mix-blend-screen opacity-70"
@@ -343,7 +342,6 @@ export default function NiaChat() {
             "radial-gradient(1000px 600px at 85% -10%, rgba(56,189,248,.18), transparent 60%), radial-gradient(1100px 700px at 0% 0%, rgba(129,140,248,.15), transparent 60%)",
         }}
       />
-      {/* sutil grid */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 opacity-[0.04]"
@@ -354,8 +352,8 @@ export default function NiaChat() {
         }}
       />
 
-      {/* HEADER fino */}
-      <header className="sticky top-0 z-20 ">
+      {/* HEADER */}
+      <header className="sticky top-0 z-20 shrink-0">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 sm:px-6 py-3">
           <div className="flex items-center gap-2">
             {thinking ? (
@@ -376,14 +374,13 @@ export default function NiaChat() {
         </div>
       </header>
 
-      {/* HERO — avatar/video circular centrado */}
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <div className="relative mx-auto -mt-2 mb-6 flex w-full items-center justify-center">
+      {/* CONTENIDO PRINCIPAL: ocupa el resto del alto */}
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6 pb-3">
+        {/* HERO avatar */}
+        <div className="relative mx-auto -mt-1 mb-4 flex w-full items-center justify-center">
           <div className="relative">
-            {/* halo grande */}
             <div className="absolute -inset-8 rounded-full bg-sky-400/10 blur-3xl" />
-            {/* anillo grande */}
-            <div className="relative h-42 w-42 overflow-hidden rounded-full ring-1 ring-white/20 shadow-[0_0_0_8px_rgba(2,6,23,0.7)]">
+            <div className="relative h-28 w-28 sm:h-32 sm:w-32 md:h-36 md:w-36 overflow-hidden rounded-full ring-1 ring-white/20 shadow-[0_0_0_8px_rgba(2,6,23,0.7)]">
               {HERO_VIDEO_SRC ? (
                 <video
                   src={HERO_VIDEO_SRC}
@@ -404,106 +401,98 @@ export default function NiaChat() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* WRAPPER contenido */}
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        {/* Tarjeta marco del chat (match con tu “frame”) */}
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-0.5">
-          <div className="rounded-3xl bg-gradient-to-b from-white/[0.03] to-transparent p-4 sm:p-6">
-            {/* Sugerencias vacías */}
-            {messages.filter((m) => m.role !== "system").length === 0 ? (
-              <div className="mx-auto mt-2 w-full max-w-3xl">
-                <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                  <p className="mb-3 text-sm font-medium text-white/80">
-                    Prueba con:
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {SUGGESTIONS.map((s, i) => (
+        {/* CHAT CARD – flex-1 dentro del viewport */}
+        <div className="flex-1 min-h-0">
+          <div className="h-full rounded-3xl border border-white/10 bg-white/[0.03] p-0.5 flex flex-col">
+            <div className="flex-1 rounded-3xl bg-gradient-to-b from-white/[0.03] to-transparent p-4 sm:p-6 flex flex-col">
+              {/* Sugerencias cuando no hay historial */}
+              {messages.filter((m) => m.role !== "system").length === 0 && (
+                <div className="mx-auto mt-1 w-full max-w-3xl">
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                    <p className="mb-3 text-sm font-medium text-white/80">
+                      Prueba con:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SUGGESTIONS.map((s, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleSuggestion(s)}
+                          className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Mensajes: ocupa el espacio disponible y scrollea dentro */}
+              <main
+                ref={listRef}
+                className="mt-4 flex-1 min-h-0 space-y-4 overflow-y-auto pr-1"
+              >
+                {messages
+                  .filter((m) => m.role !== "system")
+                  .map((m, i) => (
+                    <MessageBubble key={i} role={m.role} content={m.content} />
+                  ))}
+
+                {thinking ? <TypingIndicator /> : null}
+
+                {errorMsg ? (
+                  <div className="mx-auto w-fit rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
+                    {errorMsg}
+                  </div>
+                ) : null}
+              </main>
+
+              {/* Composer – siempre visible abajo */}
+              <div className="mt-4 shrink-0">
+                <div className="mx-auto w-full max-w-3xl">
+                  <div className="flex items-end gap-2 rounded-2xl border border-white/15 bg-white/[0.06] p-2">
+                    <textarea
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          canSend && handleSend();
+                        }
+                      }}
+                      rows={1}
+                      placeholder="Escribe tu mensaje…"
+                      className="min-h-[44px] max-h-40 flex-1 resize-none bg-transparent px-2 py-2 text-white placeholder-white/40 outline-none"
+                    />
+
+                    <div className="flex items-center gap-1.5">
                       <button
-                        key={i}
-                        onClick={() => handleSuggestion(s)}
-                        className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
+                        disabled={!canSend}
+                        onClick={() => handleSend()}
+                        className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-400 disabled:opacity-60"
                       >
-                        {s}
+                        {loading ? (
+                          <>
+                            <SpinnerDot />
+                            Enviando…
+                          </>
+                        ) : (
+                          <>
+                            <SendIcon />
+                            Enviar
+                          </>
+                        )}
                       </button>
-                    ))}
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : null}
-
-            {/* Mensajes */}
-            <main
-              ref={listRef}
-              className={[
-                "overflow-y-auto space-y-4 pr-1 transition-[height] duration-300 ease-out",
-                hasHistory
-                  ? "h-[52vh] sm:h-[58vh]" // cuando ya hay conversación: más alto
-                  : "h-[12vh] sm:h-[16vh]", // vacío: compacto
-              ].join(" ")}
-            >
-              {messages
-                .filter((m) => m.role !== "system")
-                .map((m, i) => (
-                  <MessageBubble key={i} role={m.role} content={m.content} />
-                ))}
-
-              {thinking ? <TypingIndicator /> : null}
-
-              {errorMsg ? (
-                <div className="mx-auto w-fit rounded-xl border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-100">
-                  {errorMsg}
-                </div>
-              ) : null}
-            </main>
-
-            {/* Composer */}
-            <div className="mt-4">
-              <div className="mx-auto w-full max-w-3xl">
-                <div className="flex items-end gap-2 rounded-2xl border border-white/15 bg-white/[0.06] p-2">
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        canSend && handleSend();
-                      }
-                    }}
-                    rows={1}
-                    placeholder="Escribe tu mensaje…"
-                    className="min-h-[44px] max-h-40 flex-1 resize-none bg-transparent px-2 py-2 text-white placeholder-white/40 outline-none"
-                  />
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      disabled={!canSend}
-                      onClick={() => handleSend()}
-                      className="inline-flex items-center gap-2 rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-400 disabled:opacity-60"
-                    >
-                      {loading ? (
-                        <>
-                          <SpinnerDot />
-                          Enviando…
-                        </>
-                      ) : (
-                        <>
-                          <SendIcon />
-                          Enviar
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              {/* fin composer */}
             </div>
           </div>
         </div>
       </div>
-
-      {/* FOOTER sticky leve (opcional; ya hay marco) */}
-      <div className="h-3" />
     </div>
   );
 }
@@ -548,7 +537,6 @@ function Avatar({ isUser }) {
   );
 }
 
-/** Indicador “escribiendo…” */
 function TypingIndicator() {
   return (
     <div className="flex justify-start">
@@ -572,7 +560,6 @@ function Dots() {
   );
 }
 
-/** Render bonito de backticks y links */
 function RichText({ text }) {
   if (!text) return null;
 
@@ -582,22 +569,22 @@ function RichText({ text }) {
         remarkPlugins={[remarkGfm]}
         components={{
           h1: ({ node, ...props }) => (
-            <h1 className="text-base font-semibold mb-2" {...props} />
+            <h1 className="mb-2 text-base font-semibold" {...props} />
           ),
           h2: ({ node, ...props }) => (
-            <h2 className="text-sm font-semibold mb-2" {...props} />
+            <h2 className="mb-2 text-sm font-semibold" {...props} />
           ),
           h3: ({ node, ...props }) => (
-            <h3 className="text-sm font-semibold mb-1" {...props} />
+            <h3 className="mb-1 text-sm font-semibold" {...props} />
           ),
           p: ({ node, ...props }) => (
             <p className="mb-2 last:mb-0 whitespace-pre-wrap" {...props} />
           ),
           ul: ({ node, ...props }) => (
-            <ul className="list-disc pl-5 mb-2 space-y-1" {...props} />
+            <ul className="mb-2 list-disc space-y-1 pl-5" {...props} />
           ),
           ol: ({ node, ...props }) => (
-            <ol className="list-decimal pl-5 mb-2 space-y-1" {...props} />
+            <ol className="mb-2 list-decimal space-y-1 pl-5" {...props} />
           ),
           li: ({ node, ...props }) => <li {...props} />,
           strong: ({ node, ...props }) => (
@@ -612,7 +599,7 @@ function RichText({ text }) {
               />
             ) : (
               <code
-                className="block rounded bg-black/40 px-3 py-2 text-[0.9em] overflow-x-auto"
+                className="block max-w-full overflow-x-auto rounded bg-black/40 px-3 py-2 text-[0.9em]"
                 {...props}
               />
             ),
@@ -632,39 +619,10 @@ function RichText({ text }) {
   );
 }
 
-/* -------------------- ICONOS -------------------- */
-function NiaIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" className="text-sky-300">
-      <path
-        d="M4 12a8 8 0 1116 0 8 8 0 01-16 0Zm4.5 0a3.5 3.5 0 107 0 3.5 3.5 0 00-7 0Z"
-        fill="currentColor"
-        opacity="0.35"
-      />
-      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-    </svg>
-  );
-}
-
 function SendIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" className="text-white">
       <path d="M3 11l17-8-8 17-1-7-8-2z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function PaperclipIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" className="text-white/70">
-      <path
-        d="M16.5 6.5l-7.8 7.8a3 3 0 104.2 4.2l8-8a5 5 0 10-7.1-7.1l-9.2 9.2"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

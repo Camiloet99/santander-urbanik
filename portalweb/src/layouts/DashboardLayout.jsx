@@ -56,8 +56,6 @@ function MobileNav() {
     { to: "/profile", icon: profileIcon, label: "Mi perfil" },
   ];
 
-  // si luego quieres un panel extra solo para ADMIN, aquí puedes pushear otro item
-
   return (
     <nav
       className="
@@ -126,8 +124,15 @@ export default function DashboardLayout() {
   const { logout, session } = useAuth();
   const location = useLocation();
 
+  const isExperienceRoute = location.pathname.startsWith("/experience");
+
+  // 👇 Si estamos en /experience, NO mostramos nada del layout.
+  if (isExperienceRoute) {
+    return <Outlet key={location.pathname} />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#1F2336] text-white">
+    <div className="min-h-screen bg-[#1F2336] text-white overflow-x-hidden">
       {/* Sidebar desktop */}
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-24 flex-col items-center bg-white/5 p-3 lg:flex">
         {/* Logo */}
@@ -174,26 +179,29 @@ export default function DashboardLayout() {
 
       <MobileNav />
 
-      <main className="min-h-screen px-5 py-6 lg:pl-24 lg:px-10 lg:py-8 pb-28 lg:pb-8">
-        <div className="mx-auto w-full max-w-[1600px] px-2 sm:px-4 lg:px-0">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <h1 className="text-2xl font-medium">
+      <main className="min-h-screen px-4 sm:px-5 py-6 lg:pl-24 lg:px-10 lg:py-8 pb-28 lg:pb-8 overflow-x-hidden">
+        <div className="mx-auto w-full max-w-[1600px] px-1.5 sm:px-4 lg:px-0">
+          {/* Header con wrap para mobile */}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+            <h1 className="text-xl sm:text-2xl font-medium">
               Hola,{" "}
               {session?.user?.name?.split(" ")[2] ||
                 session?.user?.name ||
                 "Usuario"}
             </h1>
-            <div className="flex items-center gap-8">
+
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-end max-w-full">
               <img
                 src={partner1}
                 alt="Partner 1"
-                className="shrink-0 h-14 sm:h-16 lg:h-[88px] max-h-[88px] object-contain drop-shadow-md"
+                className="h-10 sm:h-12 lg:h-[80px] max-h-[80px] object-contain drop-shadow-md max-w-[40vw] sm:max-w-[160px]"
                 draggable={false}
               />
               <img
                 src={partner2}
                 alt="Partner 2"
-                className="shrink-0 h-14 sm:h-16 lg:h-[88px] max-h-[88px] object-contain drop-shadow-md"
+                className="h-10 sm:h-12 lg:h-[80px] max-h-[80px] object-contain drop-shadow-md max-w-[40vw] sm:max-w-[160px]"
+                draggable={false}
               />
             </div>
           </div>
